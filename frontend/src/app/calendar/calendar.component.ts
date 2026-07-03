@@ -81,7 +81,8 @@ export class CalendarComponent implements OnInit, AfterViewInit {
     locale: brLocale,
     events: [],
     select: this.handleDateSelect.bind(this),
-    eventClick: this.handleEventClick.bind(this)
+    eventClick: this.handleEventClick.bind(this),
+    eventDrop: this.handleEventDrop.bind(this)
   };
 
   showModal = false;
@@ -186,7 +187,7 @@ export class CalendarComponent implements OnInit, AfterViewInit {
   handleEventClick(clickInfo: any): void {
     this.selectedEvent = clickInfo.event;
     this.isEditMode = true;
-    
+
     // Populate form with event data
     this.formData = {
       description: clickInfo.event.extendedProps.description || '',
@@ -194,9 +195,29 @@ export class CalendarComponent implements OnInit, AfterViewInit {
       end_time: this.formatDateTime(new Date(clickInfo.event.end)),
       jira_number: clickInfo.event.extendedProps.jira_number || ''
     };
-    
+
     this.showModal = true;
     this.errorMessage = '';
+  }
+
+  handleEventDrop(dropInfo: any): void {
+    const event = dropInfo.event;
+    const updatedData: Appointment = {
+      description: event.extendedProps.description || '',
+      start_time: this.formatDateTime(new Date(event.start)),
+      end_time: this.formatDateTime(new Date(event.end)),
+      jira_number: event.extendedProps.jira_number || ''
+    };
+
+    this.http.put(`${this.apiUrl}/${event.id}`, updatedData).subscribe({
+      next: () => {
+        this.loadAppointments();
+      },
+      error: (error) => {
+        console.error('Erro ao atualizar tarefa:', error);
+        dropInfo.revert();
+      }
+    });
   }
 
   onContextMenu(event: MouseEvent, info: any): void {
