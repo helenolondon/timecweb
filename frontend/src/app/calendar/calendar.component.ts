@@ -82,7 +82,8 @@ export class CalendarComponent implements OnInit, AfterViewInit {
     events: [],
     select: this.handleDateSelect.bind(this),
     eventClick: this.handleEventClick.bind(this),
-    eventDrop: this.handleEventDrop.bind(this)
+    eventDrop: this.handleEventDrop.bind(this),
+    eventResize: this.handleEventResize.bind(this)
   };
 
   showModal = false;
@@ -216,6 +217,26 @@ export class CalendarComponent implements OnInit, AfterViewInit {
       error: (error) => {
         console.error('Erro ao atualizar tarefa:', error);
         dropInfo.revert();
+      }
+    });
+  }
+
+  handleEventResize(resizeInfo: any): void {
+    const event = resizeInfo.event;
+    const updatedData: Appointment = {
+      description: event.extendedProps.description || '',
+      start_time: this.formatDateTime(new Date(event.start)),
+      end_time: this.formatDateTime(new Date(event.end)),
+      jira_number: event.extendedProps.jira_number || ''
+    };
+
+    this.http.put(`${this.apiUrl}/${event.id}`, updatedData).subscribe({
+      next: () => {
+        this.loadAppointments();
+      },
+      error: (error) => {
+        console.error('Erro ao atualizar tarefa:', error);
+        resizeInfo.revert();
       }
     });
   }
