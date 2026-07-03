@@ -126,7 +126,31 @@ export class CalendarComponent implements OnInit, AfterViewInit {
   }
 
   ngAfterViewInit(): void {
-    // Calendar will be initialized by FullCalendar
+    // Inject clock into FullCalendar toolbar after initialization
+    setTimeout(() => {
+      const toolbar = document.querySelector('.fc-toolbar');
+      if (toolbar) {
+        const clockElement = document.createElement('div');
+        clockElement.className = 'digital-clock';
+        clockElement.style.position = 'absolute';
+        clockElement.style.top = '14px';
+        clockElement.style.right = '20px';
+        clockElement.style.paddingRight = '30px';
+        clockElement.style.fontSize = '1.5rem';
+        clockElement.style.fontWeight = 'bold';
+        clockElement.style.color = 'white';
+        clockElement.style.fontFamily = "'Courier New', monospace";
+        clockElement.style.zIndex = '1000';
+        clockElement.style.pointerEvents = 'none';
+        clockElement.textContent = this.currentTime;
+        toolbar.appendChild(clockElement);
+
+        // Update clock every second
+        setInterval(() => {
+          clockElement.textContent = this.currentTime;
+        }, 1000);
+      }
+    }, 100);
   }
 
   loadAppointments(): void {
