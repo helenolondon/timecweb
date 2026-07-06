@@ -497,17 +497,53 @@ export class CalendarComponent implements OnInit, AfterViewInit {
         }
 
         // Format data for Excel
-        const excelData = appointments.map(apt => ({
-          'Horário Início': this.formatDateTimeForExcel(new Date(apt.start_time)),
-          'Horário Fim': this.formatDateTimeForExcel(new Date(apt.end_time)),
-          'Número Jira': apt.jira_number || '',
-          'Descrição': apt.description
-        }));
+        const excelData = appointments.map(apt => {
+          const startDate = new Date(apt.start_time);
+          const endDate = new Date(apt.end_time);
+          const durationMs = endDate.getTime() - startDate.getTime();
+          const durationHours = Math.floor(durationMs / (1000 * 60 * 60));
+          const durationMinutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+          const duration = `${String(durationHours).padStart(2, '0')}:${String(durationMinutes).padStart(2, '0')}`;
+
+          return {
+            'Horário Início': this.formatDateTimeForExcel(startDate),
+            'Horário Fim': this.formatDateTimeForExcel(endDate),
+            'Duração': duration,
+            'Número Jira': apt.jira_number || '',
+            'Descrição': apt.description
+          };
+        });
 
         // Create worksheet
         const ws = XLSX.utils.json_to_sheet(excelData);
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Tarefas');
+
+        // Calculate totals per Jira number
+        const jiraTotals: { [key: string]: number } = {};
+        appointments.forEach(apt => {
+          const startDate = new Date(apt.start_time);
+          const endDate = new Date(apt.end_time);
+          const durationMs = endDate.getTime() - startDate.getTime();
+          const durationMinutes = Math.floor(durationMs / (1000 * 60));
+          const jiraKey = apt.jira_number || 'Sem Jira';
+          jiraTotals[jiraKey] = (jiraTotals[jiraKey] || 0) + durationMinutes;
+        });
+
+        // Format totals data
+        const totalsData = Object.entries(jiraTotals).map(([jira, minutes]) => {
+          const hours = Math.floor(minutes / 60);
+          const mins = minutes % 60;
+          const duration = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
+          return {
+            'Número Jira': jira,
+            'Total Horas': duration
+          };
+        });
+
+        // Create totals worksheet
+        const wsTotals = XLSX.utils.json_to_sheet(totalsData);
+        XLSX.utils.book_append_sheet(wb, wsTotals, 'Totais');
 
         // Generate filename with date range
         const filename = `tarefas_${this.formatDateForFilename(startDate)}_a_${this.formatDateForFilename(endDate)}.xlsx`;
